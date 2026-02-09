@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ReCrea IA - Demo</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest"></script>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f0fdf4; color: #166534; text-align: center; padding: 20px; }
+        .card { background: white; border-radius: 20px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); max-width: 400px; margin: auto; }
+        .btn-foto { background-color: #22c55e; color: white; padding: 15px 30px; border: none; border-radius: 50px; font-weight: bold; cursor: pointer; font-size: 16px; width: 100%; margin-top: 10px; }
+        #resultado-container { margin-top: 20px; display: none; padding: 15px; border-radius: 15px; border: 2px dashed #22c55e; }
+        .contenedor-badge { display: inline-block; padding: 5px 15px; border-radius: 10px; color: white; font-weight: bold; margin-top: 10px; }
+        #foto-previa { width: 100%; border-radius: 10px; margin-top: 10px; display: none; }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h2 style="color: #15803d;">ReCrea App ♻️</h2>
+        <p>Transforma tus residuos con IA</p>
+        
+        <input type="file" id="camara" accept="image/*" capture="environment" style="display: none;" onchange="analizarFoto()">
+        <button class="btn-foto" onclick="document.getElementById('camara').click()">📸 HACER FOTO</button>
+        
+        <img id="foto-previa" src="#" alt="Tu foto">
+
+        <div id="resultado-container">
+            <p id="cargando">Analizando con IA...</p>
+            <div id="info-reciclaje" style="display:none;">
+                <p>Detectado: <b id="objeto-detectado">---</b></p>
+                <div id="color-contenedor" class="contenedor-badge"></div>
+                <hr>
+                <p><b>💡 Idea ReCrea:</b></p>
+                <p id="idea-creativa" style="font-style: italic;"></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // SUSTITUYE ESTO POR EL LINK QUE TE DA TEACHABLE MACHINE
+        const URL_MODELO = "https://teachablemachine.withgoogle.com/models/_6fjbI2jz/"; 
+        
+        let model, labelContainer, maxPredictions;
+
+        async function initIA() {
+            const modelURL = URL_MODELO + "model.json";
+            const metadataURL = URL_MODELO + "metadata.json";
+            model = await tmImage.load(modelURL, metadataURL);
+        }
+
+        // Base de datos de ideas
+        const baseDeIdeas = {
+            "Botella": { color: "#eab308", txt: "Amarillo", idea: "¡Haz una maceta autorregable o un comedero para pájaros!" },
+            "Lata": { color: "#eab308", txt: "Amarillo", idea: "Límpiala y úsala como portalápices o para organizar cables." },
+            "Carton": { color: "#2563eb", txt: "Azul", idea: "¡Conviértelo en un organizador de escritorio o una caja de regalo!" },
+            "Papel": { color: "#2563eb", txt: "Azul", idea: "Puedes hacer papel maché para máscaras o usarlo para compost." }
+        };
+
+        async function analizarFoto() {
+            const fileInput = document.getElementById('camara');
+            const preview = document.getElementById('foto-previa');
+            const container = document.getElementById('resultado-container');
+            
+            if (fileInput.files && fileInput.files[0]) {
+                container.style.display = "block";
+                document.getElementById('cargando').style.display = "block";
+                document.getElementById('info-reciclaje').style.display = "none";
+
+                // Mostrar foto previa
+                const reader = new FileReader();
+                reader.onload = e => { preview.src = e.target.result; preview.style.display = "block"; };
+                reader.readAsDataURL(fileInput.files[0]);
+
+                // Simular carga de modelo y predicción
+                if(!model) await initIA();
+                
+                const img = new Image();
+                img.src = window.URL.createObjectURL(fileInput.files[0]);
+                img.onload = async () => {
+                    const prediction = await model.predict(img);
+                    const mejorPrediccion = prediction.sort((a,b) => b.probability - a.probability)[0];
+                    mostrarResultado(mejorPrediccion.className);
+                };
+            }
+        }
+
+        function mostrarResultado(nombre) {
+            document.getElementById('cargando').style.display = "none";
+            document.getElementById('info-reciclaje').style.display = "block";
+            
+            const info = baseDeIdeas[nombre] || { color: "#6b7280", txt: "Gris", idea: "No tengo ideas para esto aún, ¡pero seguro puedes inventar algo!" };
+            
+            document.getElementById('objeto-detectado').innerText = nombre;
+            const badge = document.getElementById('color-contenedor');
+            badge.style.backgroundColor = info.color;
+            badge.innerText = "Contenedor " + info.txt;
+            document.getElementById('idea-creativa').innerText = info.idea;
+        }
+    </script>
+</body>
+</html>
